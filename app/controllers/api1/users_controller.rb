@@ -4,9 +4,23 @@ class Api1::UsersController < ApplicationController
 	skip_before_filter  :verify_authenticity_token
 
 	def bet_info
-		user = User.find_by_email(params[:user])
+		p params
+		user = User.find_by_facebook_id(params[:user])
 		if user
-			render json: (user.bets + user.dared_bets).uniq.to_json
+			bets = (user.bets + user.dared_bets).uniq
+			json = []
+			bets.each_with_index do |bet, i|
+				json[i] = {
+					dared_user_id: bet.dared_user.facebook_id,
+					start_date: bet.start_date.to_formatted_s(:db),
+					end_date: bet.end_date.to_formatted_s(:db),
+					description: bet.description ,
+					prize: bet.prize,
+					user_url: bet.user_url,
+					dared_user_url: bet.dared_user_url 
+				}
+			end
+			render json: json.to_json
 		else
 			render json: "invalid user".to_json
 		end
@@ -21,17 +35,17 @@ class Api1::UsersController < ApplicationController
 				request = Net::HTTP::Get.new uri
 				response = http.request request # Net::HTTPResponse object
 			end
-			if JSON.parse(response.body)["id"]
+			if User.find_by_facebook_id(params["user"]) && (JSON.parse(response.body)["id"] == params["user"])
 				bet = params["bet"]
-				bet["user_id"] = User.find_by_email(params["user"]).id
-				bet["dared_user_id"] = User.find_by_email(params["dared_user"]).id
+				bet["user_id"] = User.find_by_facebook_id(params["user"]).id
+				bet["dared_user_id"] = User.find_by_facebook_id(params["dared_user"]).id
 				if Bet.create bet_params(bet)
 					render json: "ok".to_json
 				else
 					render json: "invalid bet".to_json
 				end
 			else
-				render json: "invalid token".to_json
+				render json: "invalid token or id".to_json
 			end
 		else
 			render json: "invalid params".to_json
