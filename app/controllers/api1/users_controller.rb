@@ -43,10 +43,16 @@ class Api1::UsersController < ApplicationController
 				User.create!(user)
 			end
 			if (JSON.parse(response.body)["id"] == params["user"])
-				bet = params["bet"]
+				bet = {}
+				bet["description"] = params["description"]
+				bet["prize"] = params["description"]
+				bet["user_url"] = params["user_url"]
+				bet["dared_user_url"] = params["dared_user_url"]
+				bet["start_date"] =  DateTime.parse params["start_date"]
+				bet["end_date"] =  DateTime.parse params["end_date"]
 				bet["user_id"] = User.find_by_facebook_id(params["user"]).id
 				bet["dared_user_id"] = User.find_by_facebook_id(params["dared_user"]).id
-				if Bet.create bet_params(bet)
+				if Bet.create bet
 					render json: "ok".to_json
 				else
 					render json: "invalid bet".to_json
